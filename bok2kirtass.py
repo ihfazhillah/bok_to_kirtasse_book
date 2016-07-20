@@ -1,5 +1,7 @@
 import csv
 import subprocess
+from collections import namedtuple
+
 
 ENV = {'MDB_JET3_CHARSET':'cp1256'}
 
@@ -16,9 +18,19 @@ def read_csv(fileobj):
     reader = csv.DictReader(f, dialect='kirtass')
     return reader
 
+def main_parser(csv_obj):
+    for row in csv_obj:
+        bk_id = row.get('BkId')
+        title = row.get('Bk')
+        betaka = row.get('Betaka')
+        author = row.get('Auth')
+        category = row.get('cat')
+    bookinfo = namedtuple("BookInfo", ["bkid", "title",
+                        "betaka", "author", "cat"])
+    return bookinfo(bk_id, title, betaka, author, category)
+
 
 if __name__ == '__main__':
     csv_file = convert_main_table_to_csv("jami.bok")
-    readed = read_csv("main.csv")
-    for x in readed:
-        print(x["Betaka"])
+    csv_obj = read_csv("main.csv")
+    print(main_parser(csv_obj))
