@@ -2,6 +2,7 @@ import csv
 import subprocess
 from collections import namedtuple
 import os
+from jinja2 import Template
 
 
 ENV = {'MDB_JET3_CHARSET':'cp1256'}
@@ -9,7 +10,20 @@ MAIN = "Main"
 TITLE = "t{bkid}"
 BOOK = "b{bkid}"
 BOOKDIR = "bk{bkid}"
-
+title_template = Template(
+"""
+<?xml version="1.0" encoding="UTF-8"?>
+<dataroot>
+    {% for title in titles %}
+    <title>
+        <tit>{{title.tit}}</tit>
+        <lvl>{{title.lvl}}</lvl>
+        <id>{{title.id}}</id>
+    </title>
+    {% endfor %}
+</dataroot>
+""".strip()
+)
 def convert_table_to_csv(fname, table_name, target_path):
     command = ['mdb-export', '-d|', fname, table_name]
     with open(target_path, "w") as f:
@@ -68,6 +82,12 @@ def titles_parser(main_object, title_object):
         titles.append(title(tit, lvl, id_))
     return titles
 
+
+def make_title_xml(main_object, title_object):
+    title_string = title_template.render(titles=title_object)
+    with open(BOOKDIR.format(bkid=main_object.bkid)+"/title.xml", "w") as f:
+        f.write(title_string)
+
 if __name__ == '__main__':
     main2csv("jami.bok")
     main = main_parser(read_csv("main.csv"))
@@ -77,3 +97,4 @@ if __name__ == '__main__':
     titles = titles_parser(main, csv_obj)
     for x in titles:
         print(x)
+    make_title_xml(main, titles)
