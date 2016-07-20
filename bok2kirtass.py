@@ -34,6 +34,21 @@ title_template = Template(
 """.strip()
 )
 
+book_template = Template("""
+<?xml version="1.0" encoding="UTF-8"?>
+<dataroot>
+    {% for book in books %}
+    <book>
+        <nass>{{book.nass}}</nass>
+        <part>{{book.part}}</part>
+        <seal>{{book.seal}}</seal>
+        <id>{{book.id}}</id>
+        <page>{{book.page}}</page>
+    </book>
+    {% endfor %}
+</dataroot>
+""".strip())
+
 
 def convert_table_to_csv(fname, table_name, target_path):
     command = ['mdb-export', '-d|', fname, table_name]
@@ -101,9 +116,36 @@ def titles_parser(main_object, title_object):
     return titles
 
 
+def book_parser(book_object):
+    books = []
+    book = namedtuple("book", ["nass", "part", "seal", "id", "page"])
+    for x in book_object:
+        nass = x['nass']
+        part = x['part']
+        seal = x['seal']
+        id_ = x['id']
+        page = x['page']
+
+        import re
+        nass = re.sub("\n", "\n\n", nass)
+        nass = re.sub("\n\nA", "\n\nالجواب", nass)
+        for key in std_shorts:
+            nass = nass.replace(key, std_shorts[key])
+
+        # print(help(nass))
+
+        books.append(book(nass, part, seal, id_, page))
+
+    return books
+
 def make_title_xml(main_object, title_object):
     title_string = title_template.render(titles=title_object)
     with open(BOOKDIR.format(bkid=main_object.bkid)+"/title.xml", "w") as f:
+        f.write(title_string)
+
+def make_book_xml(main_object, book_object):
+    title_string = book_template.render(books=book_object)
+    with open(BOOKDIR.format(bkid=main_object.bkid)+"/book.xml", "w") as f:
         f.write(title_string)
 
 if __name__ == '__main__':
@@ -111,8 +153,8 @@ if __name__ == '__main__':
     main = main_parser(read_csv("main.csv"))
     book2csv("jami.bok", main)
     book = read_csv(BOOKDIR.format(bkid=main.bkid)+"/book.csv")
-    for x in book:
-        print(x)
+    book_ = book_parser(book)
+    make_book_xml(main, book_)
     #make_bookinfo_xml(main_parser(csv_obj))
     # titles = titles_parser(main, csv_obj)
     # for x in titles:
