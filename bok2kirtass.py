@@ -10,6 +10,15 @@ MAIN = "Main"
 TITLE = "t{bkid}"
 BOOK = "b{bkid}"
 BOOKDIR = "bk{bkid}"
+# shorts
+std_shorts={
+    u'A': u'صلى الله عليه وسلم',
+    u'B': u'رضي الله عن',
+    u'C': u'رحمه الله',
+    u'D': u'عز وجل',
+    u'E': u'عليه الصلاة و السلام',
+}
+
 title_template = Template(
 """
 <?xml version="1.0" encoding="UTF-8"?>
@@ -24,6 +33,8 @@ title_template = Template(
 </dataroot>
 """.strip()
 )
+
+
 def convert_table_to_csv(fname, table_name, target_path):
     command = ['mdb-export', '-d|', fname, table_name]
     with open(target_path, "w") as f:
@@ -37,6 +48,13 @@ def title2csv(fname, main_object):
     bkid = main_object.bkid
     folder = BOOKDIR.format(bkid=bkid)
     convert_table_to_csv(fname, TITLE.format(bkid=bkid), folder+"/title.csv")
+
+
+def book2csv(fname, main_object):
+    bkid = main_object.bkid
+    folder = BOOKDIR.format(bkid=bkid)
+    convert_table_to_csv(fname, BOOK.format(bkid=bkid), folder+"/book.csv")
+
 
 def read_csv(fileobj):
     f = open(fileobj, "r")
@@ -91,10 +109,12 @@ def make_title_xml(main_object, title_object):
 if __name__ == '__main__':
     main2csv("jami.bok")
     main = main_parser(read_csv("main.csv"))
-    title2csv("jami.bok", main)
-    csv_obj = read_csv("title.csv")
-    #make_bookinfo_xml(main_parser(csv_obj))
-    titles = titles_parser(main, csv_obj)
-    for x in titles:
+    book2csv("jami.bok", main)
+    book = read_csv(BOOKDIR.format(bkid=main.bkid)+"/book.csv")
+    for x in book:
         print(x)
-    make_title_xml(main, titles)
+    #make_bookinfo_xml(main_parser(csv_obj))
+    # titles = titles_parser(main, csv_obj)
+    # for x in titles:
+    #     print(x)
+    # make_title_xml(main, titles)
