@@ -10,10 +10,19 @@ TITLE = "t{bkid}"
 BOOK = "b{bkid}"
 BOOKDIR = "bk{bkid}"
 
-def convert_table_to_csv(fname, table_name, target_path='main.csv'):
+def convert_table_to_csv(fname, table_name, target_path):
     command = ['mdb-export', '-d|', fname, table_name]
     with open(target_path, "w") as f:
         subprocess.Popen(command, stdout=f, env=ENV).communicate()
+
+
+def main2csv(fname):
+    convert_table_to_csv(fname, MAIN, "main.csv")
+
+def title2csv(fname, main_object):
+    bkid = main_object.bkid
+    folder = BOOKDIR.format(bkid=bkid)
+    convert_table_to_csv(fname, TITLE.format(bkid=bkid), folder+"/title.csv")
 
 def read_csv(fileobj):
     f = open(fileobj, "r")
@@ -49,7 +58,22 @@ def make_bookinfo_xml(main_object):
     with open(BOOKDIR.format(bkid=main_object.bkid)+"/bookinfo.info", "w") as f:
         f.write(bookinfo)
 
+def titles_parser(main_object, title_object):
+    titles = []
+    title = namedtuple('title', ['tit', 'lvl', 'id'])
+    for x in title_object:
+        tit = x['tit']
+        lvl = x['lvl']
+        id_ = x['id']
+        titles.append(title(tit, lvl, id_))
+    return titles
+
 if __name__ == '__main__':
-    csv_file = convert_table_to_csv("jami.bok", MAIN)
-    csv_obj = read_csv("main.csv")
-    make_bookinfo_xml(main_parser(csv_obj))
+    main2csv("jami.bok")
+    main = main_parser(read_csv("main.csv"))
+    title2csv("jami.bok", main)
+    csv_obj = read_csv("title.csv")
+    #make_bookinfo_xml(main_parser(csv_obj))
+    titles = titles_parser(main, csv_obj)
+    for x in titles:
+        print(x)
