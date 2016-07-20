@@ -1,16 +1,19 @@
 import csv
 import subprocess
 from collections import namedtuple
+import os
 
 
 ENV = {'MDB_JET3_CHARSET':'cp1256'}
+MAIN = "Main"
+TITLE = "t{bkid}"
+BOOK = "b{bkid}"
+BOOKDIR = "bk{bkid}"
 
-
-def convert_main_table_to_csv(fname):
-    command = ['mdb-export', '-d|', fname, 'Main']
+def convert_main_table_to_csv(fname, table_name):
+    command = ['mdb-export', '-d|', fname, table_name]
     with open("main.csv", "w") as f:
         subprocess.Popen(command, stdout=f, env=ENV).communicate()
-        return f
 
 def read_csv(fileobj):
     f = open(fileobj, "r")
@@ -27,6 +30,11 @@ def main_parser(csv_obj):
         category = row.get('cat')
     bookinfo = namedtuple("BookInfo", ["bkid", "title",
                         "betaka", "author", "cat"])
+    try:
+        os.mkdir(BOOKDIR.format(bkid=bk_id))
+    except:
+        pass
+
     return bookinfo(bk_id, title, betaka, author, category)
 
 def make_bookinfo_xml(main_object):
@@ -38,10 +46,10 @@ def make_bookinfo_xml(main_object):
     bookinfo = template.format(title=main_object.title,
                            betaka=main_object.betaka.replace("\n", "&#xa;"),
                            author=main_object.author)
-    with open("bookinfo.info", "w") as f:
+    with open(BOOKDIR.format(bkid=main_object.bkid)+"/bookinfo.info", "w") as f:
         f.write(bookinfo)
 
 if __name__ == '__main__':
-    csv_file = convert_main_table_to_csv("jami.bok")
+    csv_file = convert_main_table_to_csv("jami.bok", MAIN)
     csv_obj = read_csv("main.csv")
     make_bookinfo_xml(main_parser(csv_obj))
