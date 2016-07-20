@@ -1,7 +1,7 @@
 import csv
+import os
 import subprocess
 from collections import namedtuple
-import os
 from jinja2 import Template
 
 
@@ -56,18 +56,19 @@ def convert_table_to_csv(fname, table_name, target_path):
         subprocess.Popen(command, stdout=f, env=ENV).communicate()
 
 
-def main2csv(fname):
-    convert_table_to_csv(fname, MAIN, "main.csv")
+def main2csv(fname, dir_to="."):
+    folder = os.path.join(dir_to)
+    convert_table_to_csv(fname, MAIN, folder+"/main.csv")
 
-def title2csv(fname, main_object):
+def title2csv(fname, main_object, dir_to="."):
     bkid = main_object.bkid
-    folder = BOOKDIR.format(bkid=bkid)
+    folder = os.path.join(dir_to, BOOKDIR.format(bkid=bkid))
     convert_table_to_csv(fname, TITLE.format(bkid=bkid), folder+"/title.csv")
 
 
-def book2csv(fname, main_object):
+def book2csv(fname, main_object, dir_to="."):
     bkid = main_object.bkid
-    folder = BOOKDIR.format(bkid=bkid)
+    folder = os.path.join(dir_to, BOOKDIR.format(bkid=bkid))
     convert_table_to_csv(fname, BOOK.format(bkid=bkid), folder+"/book.csv")
 
 
@@ -77,7 +78,7 @@ def read_csv(fileobj):
     reader = csv.DictReader(f, dialect='kirtass')
     return reader
 
-def main_parser(csv_obj):
+def main_parser(csv_obj, dir_to="."):
     for row in csv_obj:
         bk_id = row.get('BkId')
         title = row.get('Bk')
@@ -87,13 +88,14 @@ def main_parser(csv_obj):
     bookinfo = namedtuple("BookInfo", ["bkid", "title",
                         "betaka", "author", "cat"])
     try:
-        os.mkdir(BOOKDIR.format(bkid=bk_id))
+        bookdir = os.path.join(dir_to, BOOKDIR.format(bkid=bk_id))
+        os.mkdir(bookdir)
     except:
         pass
 
     return bookinfo(bk_id, title, betaka, author, category)
 
-def make_bookinfo_xml(main_object):
+def make_bookinfo_xml(main_object, dir_to="."):
     template = """
 <?xml version='1.0' encoding='UTF-8'?>
 <dataroot>
@@ -102,10 +104,13 @@ def make_bookinfo_xml(main_object):
     bookinfo = template.format(title=main_object.title,
                            betaka=main_object.betaka.replace("\n", "&#xa;"),
                            author=main_object.author)
-    with open(BOOKDIR.format(bkid=main_object.bkid)+"/bookinfo.info", "w") as f:
+
+    bookinfo_path = os.path.join(dir_to, BOOKDIR.format(bkid=main_object.bkid),
+                    'bookinfo.info')
+    with open(bookinfo_path, "w") as f:
         f.write(bookinfo)
 
-def titles_parser(main_object, title_object):
+def titles_parser(title_object):
     titles = []
     title = namedtuple('title', ['tit', 'lvl', 'id'])
     for x in title_object:
@@ -138,25 +143,54 @@ def book_parser(book_object):
 
     return books
 
-def make_title_xml(main_object, title_object):
+def make_title_xml(main_object, title_object, dir_to="."):
     title_string = title_template.render(titles=title_object)
-    with open(BOOKDIR.format(bkid=main_object.bkid)+"/title.xml", "w") as f:
+    title_file = os.path.join(dir_to, BOOKDIR.format(bkid=main_object.bkid),
+                        "title.xml")
+    with open(title_file, "w") as f:
         f.write(title_string)
 
-def make_book_xml(main_object, book_object):
-    title_string = book_template.render(books=book_object)
+def make_book_xml(main_object, book_object, dir_to="."):
+    book_string = book_template.render(books=book_object)
+    book_file = os.path.join(dir_to, BOOKDIR.format(bkid=main_object.bkid),
+                        "book.xml")
     with open(BOOKDIR.format(bkid=main_object.bkid)+"/book.xml", "w") as f:
-        f.write(title_string)
+        f.write(book_string)
+
+def convert(fname, dir_to="."):
+    main2csv(fname, dir_to)
+    main_csv = os.path.join(dir_to, "main.csv")
+    main_obj = main_parser(read_csv(main_csv))
+    make_bookinfo_xml(main_obj, dir_to)
+
+    title2csv(fname, main_obj, dir_to)
+    title_csv = os.path.join(dir_to, BOOKDIR.format(bkid=main_obj.bkid),
+                            "title.csv")
+    title_obj = titles_parser(read_csv(title_csv))
+    make_title_xml(main_obj, title_obj, dir_to)
+
+    book2csv(fname, main_obj, dir_to)
+    book_csv = os.path.join(dir_to, BOOKDIR.format(bkid=main_obj.bkid),
+                            'book.csv')
+    book_obj = book_parser(read_csv(book_csv))
+    make_book_xml(main_obj, book_obj, dir_to)
+
+    os.remove(main_csv)
+    os.remove(title_csv)
+    os.remove(book_csv)
+
+
 
 if __name__ == '__main__':
-    main2csv("jami.bok")
-    main = main_parser(read_csv("main.csv"))
-    book2csv("jami.bok", main)
-    book = read_csv(BOOKDIR.format(bkid=main.bkid)+"/book.csv")
-    book_ = book_parser(book)
-    make_book_xml(main, book_)
+    # main2csv("jami.bok")
+    # main = main_parser(read_csv("main.csv"))
+    # book2csv("jami.bok", main)
+    # book = read_csv(BOOKDIR.format(bkid=main.bkid)+"/book.csv")
+    # book_ = book_parser(book)
+    # make_book_xml(main, book_)
     #make_bookinfo_xml(main_parser(csv_obj))
     # titles = titles_parser(main, csv_obj)
     # for x in titles:
     #     print(x)
     # make_title_xml(main, titles)
+    convert("jami.bok")
