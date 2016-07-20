@@ -10,9 +10,9 @@ TITLE = "t{bkid}"
 BOOK = "b{bkid}"
 BOOKDIR = "bk{bkid}"
 
-def convert_main_table_to_csv(fname, table_name):
+def convert_table_to_csv(fname, table_name, target_path='main.csv'):
     command = ['mdb-export', '-d|', fname, table_name]
-    with open("main.csv", "w") as f:
+    with open(target_path, "w") as f:
         subprocess.Popen(command, stdout=f, env=ENV).communicate()
 
 def read_csv(fileobj):
@@ -50,6 +50,6 @@ def make_bookinfo_xml(main_object):
         f.write(bookinfo)
 
 if __name__ == '__main__':
-    csv_file = convert_main_table_to_csv("jami.bok", MAIN)
+    csv_file = convert_table_to_csv("jami.bok", MAIN)
     csv_obj = read_csv("main.csv")
     make_bookinfo_xml(main_parser(csv_obj))
